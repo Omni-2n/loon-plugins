@@ -1,18 +1,37 @@
-#!name = 挖煤姬
-#!desc = 挖煤姬自动签到 + 开屏/首页广告清理。签到使用应用请求时携带的 kmgSessionNO03HxWh Cookie；可在插件参数中自行修改。
-#!openUrl = https://meruki.cn
-#!author = Jason Zou
-#!homepage = https://meruki.cn
-#!icon = https://meruki.cn/favicon.ico
+#!name = 挖煤姬 · 自动签到 & 去广告
+#!desc = 每日自动签到拿积分；屏蔽开屏广告与首页广告位；自动抓取登录 Cookie。控制台：https://app.meruki.cn/__loon__ （用 Safari 打开，需 Loon 代理已开启）
+#!author = zz
+#!homepage =
+#!icon =
+#!date = 2026-11-16
+#!openUrl = https://app.meruki.cn/__loon__
+#!loon_version = 3.5.3
+#!system = ios
 
 [Argument]
-session = kmgSessionNO03HxWh=
-notify = true
+cookie = input,tag=登录Cookie（可选）,desc=粘贴 kmgSession… 整行；留空则由脚本自动抓取。这里填了就以此为准
+blockSplash = switch,true,tag=屏蔽开屏广告
+blockHomeAd = switch,true,tag=屏蔽首页广告位
+blockBanner = switch,false,tag=屏蔽首页轮播图,desc=开启后首页顶部轮播区域会空出来，一般不必开
+notify = switch,true,tag=签到结果通知
+
+[Rule]
+# 埋点与广告 SDK —— 不需要的话把这两行删掉
+DOMAIN-SUFFIX,sensorsdata.cn,REJECT
+DOMAIN-SUFFIX,oceanengine.com,REJECT
 
 [Script]
-http-response ^https?:\/\/app\.meruki\.cn\/\?n=Sig\.Front\.AppFront\.GetOpenAd script-path=meruki-rewrite.js, requires-body=true, timeout=10
-http-response ^https?:\/\/app\.meruki\.cn\/\?n=Sig\.Front\.SubSite\.AppMercari\.GetHomeInfoV2 script-path=meruki-rewrite.js, requires-body=true, timeout=10
-cron "7 9 * * *" script-path=meruki-checkin.js, timeout=30
+# ① 抓登录态 Cookie + 承载控制台网页
+http-request ^https?:\/\/(app|h5)\.meruki\.cn\/ script-path=https://raw.githubusercontent.com/Omni-2n/loon-plugins/main/meruki.js, argument=[{cookie}], timeout=60, tag=挖煤姬-Cookie与控制台
+
+# ② 去广告（开屏 / 首页广告位）
+http-response ^https?:\/\/app\.meruki\.cn\/.*n=Sig\.Front\.(AppFront\.GetOpenAd|SubSite\.AppMercari\.GetHomeInfoV2) script-path=https://raw.githubusercontent.com/Omni-2n/loon-plugins/main/meruki.js, argument=[{blockSplash},{blockHomeAd},{blockBanner}], requires-body=true, timeout=60, tag=挖煤姬-去广告
+
+# ③ 每天 08:30 自动签到（五段 cron：分 时 日 月 周）
+cron "30 8 * * *" script-path=https://raw.githubusercontent.com/Omni-2n/loon-plugins/main/meruki.js, argument=[{cookie},{notify}], timeout=120, tag=挖煤姬-每日签到
+
+# ④ 晚上 21:00 兜底再跑一次（已签到会自动跳过，不会重复领）
+cron "0 21 * * *" script-path=https://raw.githubusercontent.com/Omni-2n/loon-plugins/main/meruki.js, argument=[{cookie},{notify}], timeout=120, tag=挖煤姬-签到兜底
 
 [MITM]
-hostname = app.meruki.cn
+hostname = %APPEND% app.meruki.cn, h5.meruki.cn
