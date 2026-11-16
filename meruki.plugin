@@ -1,0 +1,18 @@
+#!name = 挖煤姬
+#!desc = 挖煤姬自动签到 + 开屏/首页广告清理。签到使用应用请求时携带的 kmgSessionNO03HxWh Cookie；可在插件参数中自行修改。
+#!openUrl = https://meruki.cn
+#!author = Jason Zou
+#!homepage = https://meruki.cn
+#!icon = https://meruki.cn/favicon.ico
+
+[Argument]
+session = kmgSessionNO03HxWh=
+notify = true
+
+[Script]
+http-response ^https?:\/\/app\.meruki\.cn\/\?n=Sig\.Front\.AppFront\.GetOpenAd script-path=meruki-rewrite.js, requires-body=true, timeout=10
+http-response ^https?:\/\/app\.meruki\.cn\/\?n=Sig\.Front\.SubSite\.AppMercari\.GetHomeInfoV2 script-path=meruki-rewrite.js, requires-body=true, timeout=10
+cron "7 9 * * *" script-path=meruki-checkin.js, timeout=30
+
+[MITM]
+hostname = app.meruki.cn
