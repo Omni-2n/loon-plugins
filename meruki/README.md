@@ -4,7 +4,7 @@
 
 ```
 仓库：https://github.com/Omni-2n/loon-plugins
-脚本：https://raw.githubusercontent.com/Omni-2n/loon-plugins/main/meruki.js
+脚本：https://raw.githubusercontent.com/Omni-2n/loon-plugins/main/meruki/meruki.js
 ```
 
 ## 功能
@@ -27,11 +27,11 @@
 Loon → 配置 → 插件 → 右上 `+` → 从 URL 添加：
 
 ```
-https://raw.githubusercontent.com/Omni-2n/loon-plugins/main/meruki.plugin
+https://raw.githubusercontent.com/Omni-2n/loon-plugins/main/meruki/meruki.plugin
 ```
 
 > 国内 `raw.githubusercontent.com` 不通时换 jsDelivr：
-> `https://cdn.jsdelivr.net/gh/Omni-2n/loon-plugins@main/meruki.plugin`
+> `https://cdn.jsdelivr.net/gh/Omni-2n/loon-plugins@main/meruki/meruki.plugin`
 > （换了之后，插件里 4 处 `script-path` 也要一起换成 jsDelivr 的 `meruki.js` 地址）
 
 ### 方式二：本地文件导入
