@@ -311,6 +311,21 @@ function captureCookie(headers) {
   log('cookie captured, len=' + full.length);
 }
 
+/* 开屏广告的几种可能命名，宁可多匹配不要漏 */
+var SPLASH_RE = /(GetOpenAd|OpenAd|SplashAd|StartAd|OpenScreen|GetAppOpenAd|LaunchAd)/i;
+
+/* 直接吐给 App 的"没有广告"响应，字段照抄线上返回的结构 */
+function splashPayload() {
+  return JSON.stringify({
+    code: 200,
+    data: {
+      Img: '', ImgEn: '', ImgEnUrl: '', ImgZhTW: '', ImgZhTWUrl: '',
+      ImgJa: '', ImgJaUrl: '', WaitSecond: 0, Open: false, Url: '',
+      StartAt: '', EndAt: ''
+    }
+  });
+}
+
 function onRequest() {
   var url = $request.url || '';
 
@@ -319,10 +334,29 @@ function onRequest() {
   }
 
   captureCookie($request.headers);
+
+  /*
+   * 开屏广告在【请求阶段】就掐掉：不依赖响应体、不依赖 requires-body、不依赖 gzip 解码，
+   * 少一层环节就少一个"偶尔漏掉"的可能，顺带省一次网络往返。
+   */
+  if (SPLASH_RE.test(url)) {
+    if (arg('blockSplash', true)) {
+      log('splash blocked at request: ' + url.slice(0, 120));
+      return $done({
+        response: {
+          status: 200,
+          headers: { 'Content-Type': 'application/json; charset=utf-8' },
+          body: splashPayload()
+        }
+      });
+    }
+    return $done({});
+  }
+
   $done({});
 }
 
-/* ============================ 响应阶段：去广告 ============================ */
+/* ============================ 响应阶段：去广告（兜底） ============================ */
 
 function onResponse() {
   var url = $request.url || '';
@@ -332,8 +366,8 @@ function onResponse() {
     return $done({});
   }
 
-  /* --- 开屏广告 --- */
-  if (/Sig\.Front\.AppFront\.GetOpenAd/i.test(url)) {
+  /* --- 开屏广告（请求阶段没拦住时的兜底） --- */
+  if (SPLASH_RE.test(url)) {
     if (!arg('blockSplash', true)) return $done({});
     var o = safeJSON(body);
     if (!o || typeof o !== 'object') return $done({});
@@ -342,7 +376,7 @@ function onResponse() {
       ImgJa: '', ImgJaUrl: '', WaitSecond: 0, Open: false, Url: '',
       StartAt: '', EndAt: ''
     };
-    log('openAd blocked');
+    log('openAd blocked (response)');
     return $done({ body: JSON.stringify(o) });
   }
 

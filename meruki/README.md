@@ -12,7 +12,7 @@
 | 功能 | 实现方式 |
 |---|---|
 | 每日自动签到 | 定时 `POST /api/user/signin/signin`，先查 `signin/config` 判断今天签没签，签过就不重复请求 |
-| 去开屏广告 | 改写 `Sig.Front.AppFront.GetOpenAd` 的响应，`Open=false` + `WaitSecond=0`，跳过 5 秒开屏 |
+| 去开屏广告 | **请求阶段**就把 `GetOpenAd` 这类请求拦下、直接返回 `Open=false` 的包（不依赖响应体/解压，少一层环节），响应阶段再兜一层 |
 | 去首页广告 | 改写 `Sig.Front.SubSite.AppMercari.GetHomeInfoV2`，清空 `data.ads`（轮播图可选清） |
 | 登录态自动抓取 | 开着 Loon 正常用一次 App，请求头里的 `kmgSession…` 就被存下来 |
 | **Cookie 控制台** | 网页控制台 `https://app.meruki.cn/__loon__`：看登录态、立即签到、粘贴新 Cookie 保存、清空 |
@@ -98,6 +98,39 @@ Loon → 插件 → 本插件 → 参数 → 「登录Cookie」里粘贴。
 | 控制台打不开（404 或 JSON） | `script-path` 没填对，或 MITM 没覆盖 `app.meruki.cn` |
 | 脚本完全不跑 | 换 `meruki-compat.plugin`（无 `[Argument]` 版本，功能一样，只是不能调参数） |
 | 签到成功但 App 积分没变 | 等几秒刷新，积分异步发放 |
+| 开屏偶尔还出现 | 见下面「开屏没拦住怎么查」 |
+
+## 开屏没拦住怎么查
+
+先分清三种情况，再决定要不要抓包：
+
+**① 脚本压根没执行**（最常见）
+Loon 是从 `raw.githubusercontent.com` 现拉 `meruki.js` 的，弱网或冷启动那一瞬间没拉到，这条规则就等同于不存在，广告自然照放。
+判断方法：同一次启动如果连 Cookie 都没抓到（控制台「保存时间」没变），基本就是这个原因。
+处理：换 jsDelivr 地址（更稳），或者干脆重新从 URL 导入一次插件让 Loon 重新缓存脚本。
+
+**② 请求走了别的域名 / 别的接口名**
+插件原本只匹配 `app.meruki.cn` 的 `GetOpenAd`。v1.1 已经把匹配放宽到 `meruki.cn` 全站 + `*.meruki.cn`，
+并同时认 `OpenAd / SplashAd / StartAd / OpenScreen / LaunchAd` 这几种命名，MITM 也扩到了 `meruki.cn, *.meruki.cn`。
+如果放宽后还漏，说明接口名是全新的，需要抓包看。
+
+**③ App 本地缓存了广告物料**
+开屏广告有 `StartAt / EndAt` 有效期，App 很可能把上次拿到的图连有效期一起存本地，有效期内冷启动**不发请求**直接展示。
+这种情况下任何抓包工具/插件都拦不到（没请求可拦），只能等缓存过期或者清 App 数据。
+
+### 真要抓包的话，这样抓才有用
+
+必须是**冷启动抓包**，不是随便浏览几下：
+
+1. App 完全杀掉（上滑划掉，不是切后台）
+2. 开抓包（Stream / Charles / Thor，或 Loon 的日志）
+3. **冷启动 App**，等开屏广告真的出现在屏幕上，别急着点跳过
+4. 停止抓包，导出 HAR
+
+我要看的是：广告出现的那一次启动里，**到底有没有 `GetOpenAd` 这条请求**。
+- 有 → 看它的完整 URL（域名、`n=` 参数名、是否有额外 header），照着补规则
+- 没有 → 基本就是情况 ③ 的本地缓存，抓包也解决不了
+
 
 ## 文件
 

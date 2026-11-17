@@ -3,7 +3,7 @@
 #!author = zz
 #!homepage =
 #!icon =
-#!date = 2026-11-16
+#!date = 2026-11-17
 #!openUrl = https://app.meruki.cn/__loon__
 #!loon_version = 3.5.3
 #!system = ios
@@ -22,10 +22,10 @@ DOMAIN-SUFFIX,oceanengine.com,REJECT
 
 [Script]
 # ① 抓登录态 Cookie + 承载控制台网页
-http-request ^https?:\/\/(app|h5)\.meruki\.cn\/ script-path=https://raw.githubusercontent.com/Omni-2n/loon-plugins/main/meruki/meruki.js, argument=[{cookie}], timeout=60, tag=挖煤姬-Cookie与控制台
+http-request ^https?:\/\/([a-z0-9-]+\.)*meruki\.cn\/ script-path=https://raw.githubusercontent.com/Omni-2n/loon-plugins/main/meruki/meruki.js, argument=[{cookie},{blockSplash}], timeout=60, tag=挖煤姬-Cookie与控制台
 
 # ② 去广告（开屏 / 首页广告位）
-http-response ^https?:\/\/app\.meruki\.cn\/.*n=Sig\.Front\.(AppFront\.GetOpenAd|SubSite\.AppMercari\.GetHomeInfoV2) script-path=https://raw.githubusercontent.com/Omni-2n/loon-plugins/main/meruki/meruki.js, argument=[{blockSplash},{blockHomeAd},{blockBanner}], requires-body=true, timeout=60, tag=挖煤姬-去广告
+http-response ^https?:\/\/([a-z0-9-]+\.)*meruki\.cn\/.*n=.*(GetOpenAd|OpenAd|SplashAd|StartAd|OpenScreen|GetHomeInfoV2) script-path=https://raw.githubusercontent.com/Omni-2n/loon-plugins/main/meruki/meruki.js, argument=[{blockSplash},{blockHomeAd},{blockBanner}], requires-body=true, timeout=60, tag=挖煤姬-去广告
 
 # ③ 每天 08:30 自动签到（五段 cron：分 时 日 月 周）
 cron "30 8 * * *" script-path=https://raw.githubusercontent.com/Omni-2n/loon-plugins/main/meruki/meruki.js, argument=[{cookie},{notify}], timeout=120, tag=挖煤姬-每日签到
@@ -34,4 +34,4 @@ cron "30 8 * * *" script-path=https://raw.githubusercontent.com/Omni-2n/loon-plu
 cron "0 21 * * *" script-path=https://raw.githubusercontent.com/Omni-2n/loon-plugins/main/meruki/meruki.js, argument=[{cookie},{notify}], timeout=120, tag=挖煤姬-签到兜底
 
 [MITM]
-hostname = %APPEND% app.meruki.cn, h5.meruki.cn
+hostname = %APPEND% meruki.cn, *.meruki.cn
