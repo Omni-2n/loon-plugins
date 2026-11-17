@@ -1,0 +1,26 @@
+#!name = 淘金币 · 自动签到
+#!desc = 淘宝淘金币每日自动签到，支持自动抓取登录态。控制台：https://h5api.m.taobao.com/__loon__ （需 Loon 代理 + MITM 已开启）
+#!author = zz
+#!homepage =
+#!icon =
+#!date = 2026-11-17
+#!openUrl = https://h5api.m.taobao.com/__loon__
+#!loon_version = 3.5.3
+#!system = ios
+
+[Argument]
+cookie = input,tag=淘宝Cookie（可选）,desc=粘贴含 _m_h5_tk 与 cookie2 的 Cookie 整行；留空则由脚本自动抓取。这里填了就以此为准
+notify = switch,true,tag=签到结果通知
+
+[Script]
+# ① 抓登录态 Cookie + 承载控制台网页
+http-request ^https?:\/\/h5api\.m\.taobao\.com\/ script-path=https://raw.githubusercontent.com/Omni-2n/loon-plugins/main/taojinbi/taojinbi.js, argument=[{cookie}], timeout=60, tag=淘金币-Cookie与控制台
+
+# ② 每天 08:10 自动签到（五段 cron：分 时 日 月 周）
+cron "10 8 * * *" script-path=https://raw.githubusercontent.com/Omni-2n/loon-plugins/main/taojinbi/taojinbi.js, argument=[{cookie},{notify}], timeout=120, tag=淘金币-每日签到
+
+# ③ 晚上 21:10 兜底再跑一次（已签到会自动跳过）
+cron "10 21 * * *" script-path=https://raw.githubusercontent.com/Omni-2n/loon-plugins/main/taojinbi/taojinbi.js, argument=[{cookie},{notify}], timeout=120, tag=淘金币-签到兜底
+
+[MITM]
+hostname = %APPEND% h5api.m.taobao.com
